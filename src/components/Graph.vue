@@ -1,31 +1,70 @@
 <template>
-  <div id="main" :style="{'top':top+'px','left':left+'px','z-index':zindex}">
+<div>
+  <div id="main"
+       :style="{'top':(setting.y+offsetTop)+'px','left':(setting.x+offsetLeft)+'px','z-index':setting.zIndex}">
+
     <div class="node-list">
-      <Node v-if="graphdata.inprocessnode" name="Process" type="Process" v-on:node_click="$emit('node_click',[graphid,0,0])"/>
-      <Node v-for="node in graphdata.initemnodes" :key="node.name" :name="node.name" :type="node.type" v-on:node_click="$emit('node_click',[graphid,2,node.index])"/>
+      <Node v-if="definition.InProcessNode"
+            ref="inprocess_0"
+            name="Process"
+            :index=0
+            :node-type=0
+            v-on:onNodeClick="onNodeClick"/>
+      <Node v-for="node in inItems" :key="node.id"
+            :ref="node.id"
+            :name="node.name"
+            :index="node.index"
+            :node-type=2
+            :item-type="node.type"
+            v-on:onNodeClick="onNodeClick"/>
     </div>
+
     <div id="body"
          v-on:mousedown="onMouseDown"
          v-on:mouseup="onMouseUp"
          v-on:mousemove="onMouseMove"
          v-on:mouseleave="onMouseUp">
-      <div id="name">{{ type=="Updater" ? "Main" : type == "DebugText" ? "PrintText" : type }}</div>
+
+      <div id="graph-type">{{graphType}}</div>
+
       <div id="node-names-layout">
         <div class="node-names-container">
-          <div class="node-name" v-if="graphdata.inprocessnode">Process</div>
-          <div class="node-name" v-for="node in graphdata.initemnodes" :key="node.name">{{node.name}}</div>
+          <div class="node-name" v-if="definition.InProcessNode">Process</div>
+          <div class="node-name" v-for="node in inItems" :key="`name_${node.id}`">{{node.name}}</div>
         </div>
         <div class="node-names-container">
-          <div class="node-name" v-for="node in graphdata.outprocessnodes" :key="node.name">{{node.name}}</div>
-          <div class="node-name" v-for="node in graphdata.outitemnodes" :key="node.name">{{node.name}}</div>
+          <div class="node-name" v-for="node in outProcessNodes" :key="`name_${node.id}`">{{node.name}}</div>
+          <div class="node-name" v-for="node in outItems" :key="`name_${node.id}`">{{node.name}}</div>
         </div>
       </div>
+
+      <div v-if="graphType === 'Value<int>'">
+        <input type="number" v-model="setting.Value"/>
+      </div>
+
+      <div v-if="graphType === 'Value<string>'">
+        <input type="text" v-model="setting.Value"/>
+      </div>
     </div>
+
     <div class="node-list">
-      <Node v-for="node in graphdata.outprocessnodes" :key="node.name" :name="node.name" type="Process" v-on:node_click="$emit('node_click',[graphid,1,node.index])"/>
-      <Node v-for="node in graphdata.outitemnodes" :key="node.name" :name="node.name" :type="node.type" v-on:node_click="$emit('node_click',[graphid,3,node.index])"/>
+      <Node v-for="node in outProcessNodes" :key="node.id"
+            :ref="node.id"
+            name="Process"
+            :index="node.index"
+            :node-type=1
+            v-on:onNodeClick="onNodeClick"/>
+      <Node v-for="node in outItems" :key="node.id"
+            :ref="node.id"
+            :name="node.name"
+            :index="node.index"
+            :node-type=3
+            :item-type="node.type"
+            v-on:onNodeClick="onNodeClick"/>
     </div>
+
   </div>
+</div>
 </template>
 
 <script>
@@ -34,10 +73,12 @@ import Node from "@/components/Node";
 export default {
   name: 'Graph',
   props: {
-    type: String,
-    zindex: Number,
-    graphid:String,
-    graphdata: Object
+    graphId: String,
+    graphType: String,
+    definition: Object,
+    setting: Object,
+    offsetTop: Number,
+    offsetLeft: Number,
   },
   components: {
     Node
@@ -47,8 +88,52 @@ export default {
       dragMode : false,
       clickX:0,
       clickY:0,
-      top:100,
-      left:0
+      inItems:[],
+      outItems:[],
+      outProcessNodes:[],
+    }
+  },
+  mounted() {
+
+    if(this.graphType === "Value<int>"){
+      this.$set(this.setting, "Value", 0);
+    }
+
+    if(this.graphType === "Value<string>"){
+      this.$set(this.setting, "Value", "");
+    }
+
+    // InItem
+    let i = 0;
+    for(let key in this.definition.InItem){
+      this.inItems.push({
+        id:"initem_"+i,
+        index:i,
+        name:key,
+        type:this.definition.InItem[key]
+      });
+      i++;
+    }
+
+    // OutItem
+    i = 0;
+    for(let key in this.definition.OutItem){
+      this.outItems.push({
+        id:"outitem_"+i,
+        index:i,
+        name:key,
+        type:this.definition.OutItem[key]
+      });
+      i++;
+    }
+
+    // OutProcess
+    for(i = 0;i < this.definition.OutProcessNodeCount;i++){
+      this.outProcessNodes.push({
+        id:"outprocess_"+i,
+        index:i,
+        name:"Process"
+      });
     }
   },
   methods:{
@@ -56,7 +141,7 @@ export default {
       this.dragMode = true;
       this.clickX = args.x;
       this.clickY = args.y;
-      this.$emit("to_front")
+      this.$emit("toFront")
     },
     onMouseUp : function () {
       this.dragMode = false;
@@ -65,33 +150,49 @@ export default {
       if(this.dragMode){
         let dx = args.x - this.clickX;
         let dy = args.y - this.clickY;
-        this.top += dy;
-        this.left += dx;
+        this.setting.y += dy;
+        this.setting.x += dx;
         this.clickX = args.x;
         this.clickY = args.y;
       }
-    }
+    },
+    onNodeClick : function (nodeType,nodeIndex){
+      this.$emit("onNodeClick",this.graphId,nodeType,nodeIndex);
+    },
+    getNode(nodeType,nodeIndex){
+      if(nodeType === 0){
+        return this.$refs["inprocess_0"];
+      }else if(nodeType === 1){
+        return this.$refs["outprocess_"+nodeIndex];
+      }else if(nodeType === 2){
+        return this.$refs["initem_"+nodeIndex];
+      }else if(nodeType === 3){
+        return this.$refs["outitem_"+nodeIndex];
+      }
+    },
   }
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+
 #main{
-  display: inline-flex;
-  position: relative;
   height: 100px;
+  display: inline-flex;
+  position: absolute;
   background: transparent;
   pointer-events: none;
 }
+
 #body{
-  width: 180px;
   height: 100%;
+  width: 180px;
   border: solid;;
   background: white;
   pointer-events: auto;
 }
-#name{
+
+#graph-type{
   font-weight: bold;
 }
 

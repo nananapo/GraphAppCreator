@@ -1,52 +1,88 @@
 <template>
-  <div id="result-pad">
-    <div id="generated-code">
-      <div style="text-align: left">生成されたコード</div>
-      <textarea readonly v-model="codeString"/>
+<div>
+  <div id="main">
+    <div class="row">
+      <div class="pad-column" id="javascript">
+        <div class="title">JavaScript</div>
+        <textarea v-model="js" readonly/>
+      </div>
+      <div class="pad-column" id="html">
+        <div class="title">HTML</div>
+        <textarea v-model="html" readonly/>
+      </div>
     </div>
-    <div id="log">
-      <div style="text-align: left">ログ</div>
-      <textarea readonly v-model="logString"/>
+    <div class="row">
+      <div class="pad-column" id="result">
+        <div class="title">Result</div>
+        <iframe id="result-frame" v-bind:srcdoc="result"/>
+      </div>
+      <div class="pad-column" id="log">
+        <div class="title">Log</div>
+        <textarea v-model="log" readonly/>
+      </div>
     </div>
   </div>
+</div>
 </template>
 
 <script>
 export default {
   name: "ResultPad",
   props:{
-    logString:String,
-    codeString:String
+    js:String,
+    html:String,
+    log:String,
+    result:String
   }
 }
 </script>
 
 <style scoped>
-#result-pad{
+
+#main{
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: row;
   border-left: black solid 1px;
+  background-color: #ffffff;
 }
 
-#generated-code{
+.row{
   display: flex;
   flex-direction: column;
-  height: 60%;
-  background: #ffffff;
+  flex: 1;
+  border-right: black solid 1px;
+}
+
+.title{
+  text-align: left;
+}
+
+.pad-column{
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 textarea{
-  flex-grow: 1;
+  width: 100%;
+  height: 100%;
   resize: none;
   padding: 0;
   outline: none;
   border: none;
   border-top: black solid 1px;
   border-bottom: black solid 1px;
+  background: #e5e5e5;
 }
 
-#log{
-  display: flex;
-  flex-direction: column;
-  height: 40%;
-  background: #ffffff;
+iframe{
+  width: 100%;
+  height: 100%;
+  border-top: black solid 1px;
+  border-bottom: black solid 1px;
+  border-left: none;
+  border-right: none;
 }
 </style>

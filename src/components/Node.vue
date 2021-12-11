@@ -1,6 +1,8 @@
 <template>
-<div id="node">
-  <img id="node-image" src="@/assets/round.svg"  v-on:mousedown="$emit('node_click')">
+<div>
+  <div id="node">
+    <img id="node-image" src="@/assets/round.svg"  v-on:mousedown="onMouseDown">
+  </div>
 </div>
 </template>
 
@@ -9,11 +11,13 @@ export default {
   name: "Node",
   props:{
     name:String,
-    type:String
+    index:Number,
+    nodeType:Number,
+    itemType:String
   },
   methods:{
     onMouseDown: function (){
-      console.log("1")
+      this.$emit('onNodeClick', this.nodeType, this.index);
     }
   }
 }

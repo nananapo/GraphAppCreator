@@ -1,0 +1,34 @@
+{
+  "Graphs": {
+    "main": {
+      "Type": "Main",
+      "Args": {}
+    },
+    "value1": {
+      "Type": "Value<T>",
+      "Args": {
+        "Value": "2"
+      }
+    },
+    "value2": {
+      "Type": "Value<T>",
+      "Args": {
+        "Value": "4"
+      }
+    },
+    "add": {
+      "Type": "AdditionOperator<T1,T2,T3>",
+      "Args": {}
+    },
+    "print": {
+      "Type": "Print",
+      "Args": {}
+    }
+  },
+  "Connections": [
+    "main:1:0,print:0:0",
+    "value1:3:0,add:2:0",
+    "value2:3:0,add:2:1",
+    "add:3:0,print:2:0"
+  ]
+}
