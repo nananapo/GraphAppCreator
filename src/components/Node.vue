@@ -1,7 +1,22 @@
 <template>
 <div>
   <div id="node">
-    <img id="node-image" src="@/assets/round.svg"  v-on:mousedown="onMouseDown">
+
+    <img v-if="nodeType === -1"
+         class="node-image none"/>
+
+    <img v-if="nodeType === 0 || nodeType === 1"
+         class="node-image"
+         src="@/assets/triangle.svg"
+         alt="node"
+         v-on:mousedown="onMouseDown">
+
+    <img v-if="nodeType === 2 || nodeType === 3"
+         class="node-image"
+         src="@/assets/round.svg"
+         alt="node"
+         v-on:mousedown="onMouseDown">
+
   </div>
 </div>
 </template>
@@ -13,7 +28,8 @@ export default {
     name:String,
     index:Number,
     nodeType:Number,
-    itemType:String
+    itemType:String,
+    isUsed:Boolean,
   },
   methods:{
     onMouseDown: function (){
@@ -28,10 +44,14 @@ export default {
   width: 30px;
   height: 30px;
 }
-#node-image{
-  width: 30px;
-  height: 30px;
+.node-image{
+  width: 15px;
+  height: 15px;
+  margin-top: 7.5px;
   object-fit: fill;
   pointer-events: auto;
+}
+.none{
+  display: none;
 }
 </style>

@@ -3,22 +3,12 @@
   <div id="main">
     <div class="row">
       <div class="pad-column" id="javascript">
-        <div class="title">JavaScript</div>
+        <div class="title">Generated JavaScript</div>
         <textarea v-model="js" readonly/>
       </div>
       <div class="pad-column" id="html">
-        <div class="title">HTML</div>
+        <div class="title">Generated HTML</div>
         <textarea v-model="html" readonly/>
-      </div>
-    </div>
-    <div class="row">
-      <div class="pad-column" id="result">
-        <div class="title">Result</div>
-        <iframe id="result-frame" v-bind:srcdoc="result"/>
-      </div>
-      <div class="pad-column" id="log">
-        <div class="title">Log</div>
-        <textarea v-model="log" readonly/>
       </div>
     </div>
   </div>
@@ -33,6 +23,11 @@ export default {
     html:String,
     log:String,
     result:String
+  },
+  methods:{
+    reloadIframe(){
+      this.$refs.resultIframe.contentWindow.location.reload();
+    }
   }
 }
 </script>
@@ -75,6 +70,8 @@ textarea{
   border-top: black solid 1px;
   border-bottom: black solid 1px;
   background: #e5e5e5;
+  font-size: x-large;
+  font-weight: bold;
 }
 
 iframe{

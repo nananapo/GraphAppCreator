@@ -1,134 +1,93 @@
 <template>
   <div id="app">
-    <ToolPad id="tool-pad" :generator-setting="javascriptSetting" v-on:onAddGraph="onAddGraph"/>
-    <GraphPad id="graph-pad" ref="graphpad" :graphs="graphs" v-on:onNodeClick="onNodeClick"/>
-    <ResultPad id="result-pad" :log="logString" :result="resultString" :html="htmlString" :js="jsString"/>
+    <ToolPad id="tool-pad" :generator-setting="jsMode ? javascriptSetting : htmlSetting" v-on:onAddGraph="onAddGraph"/>
+
+    <GraphPad class="graph-pad"
+              ref="jsPad"
+              v-show="jsMode"
+              :generator-setting="javascriptSetting"
+              :logo-src="require('@/assets/javascript_logo.jpeg')"
+              v-on:onUpdate="onUpdateGraphPad"/>
+
+    <GraphPad class="graph-pad"
+              ref="htmlPad"
+              v-show="!jsMode"
+              :generator-setting="htmlSetting"
+              :logo-src="require('@/assets/html_logo.png')"
+              v-on:onUpdate="onUpdateGraphPad"/>
+
+    <ResultViewer id="result-viewer" :result-html="resultString"/>
+
+    <ResultPad v-show="showResultPad" id="result-pad" :log="logString" :html="htmlString" :js="jsString"/>
+
+    <div class="flex-column fixed-bottom-left no-select">
+      <div class="flex-row gap-8 mybutton background-transparent hover-white click-black" v-on:click="regenerate">
+        <img class="button-img" src="@/assets/refresh_white_48dp.svg" alt=""/>
+        <div class="button-text">再生成</div>
+      </div>
+      <div class="flex-row gap-8 mybutton background-transparent hover-white click-black" id="refresh-button" v-on:click="jsMode = !jsMode">
+        <img class="button-img" :src="jsMode ? require('@/assets/javascript_logo.jpeg') : require('@/assets/html_logo.png')" alt=""/>
+        <div class="button-text">{{jsMode ? "JavaScript" : "HTML"}}</div>
+      </div>
+      <button id="show-result-button" v-on:click="showResultPad = !showResultPad">{{showResultPad ? "結果を非表示" : "結果を表示"}}</button>
+    </div>
   </div>
 </template>
 
 <script>
 
-import ToolPad from "@/components/ToolPad";
 import GraphPad from "@/components/GraphPad";
 import ResultPad from "@/components/ResultPad";
-
-function generateUuid() {
-  // https://github.com/GoogleChrome/chrome-platform-analytics/blob/master/src/internal/identifier.js
-  // const FORMAT: string = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
-  let chars = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".split("");
-  for (let i = 0, len = chars.length; i < len; i++) {
-    switch (chars[i]) {
-      case "x":
-        chars[i] = Math.floor(Math.random() * 16).toString(16);
-        break;
-      case "y":
-        chars[i] = (Math.floor(Math.random() * 4) + 8).toString(16);
-        break;
-    }
-  }
-  return chars.join("");
-}
+import ToolPad from "@/components/ToolPad";
+import ResultViewer from "@/components/ResultViewer";
 
 export default {
   name: 'App',
   components: {
     GraphPad,
     ResultPad,
-    ToolPad
+    ToolPad,
+    ResultViewer
   },
   data() {
     return {
-      connections : [ ],
-      graphs: {},
-      selectedNode : null,
+      javascriptSetting:{Graphs:{}},
+      htmlSetting:{Graphs:{}},
 
-      javascriptSetting:{
-        Graphs:{}
-      },
+      jsMode:true,
+      showResultPad:false,
 
       logString : "",
-      resultString : "<h1>Test</h1>",
+      resultString : "",
       htmlString : "HTML",
       jsString : "JS",
     }
   },
-  mounted() {
+  async mounted() {
     const jsSettingUrl = "https://raw.githubusercontent.com/myWorldHub/GeneratorSetting/main/javascript.json";
-    let parent = this;
-    fetch(jsSettingUrl).then(function(response) {
-      return response.json();
-    }).then(function(json){
-      parent.javascriptSetting = json;
-    });
+    this.javascriptSetting = await (await fetch(jsSettingUrl)).json();
+
+    const htmlSettingUrl = "https://raw.githubusercontent.com/myWorldHub/GeneratorSetting/main/html.json";
+    this.htmlSetting = await (await fetch(htmlSettingUrl)).json();
   },
   methods:{
-    getMaxZIndex : function () {
-      let maxZ = -1;
-      Object.keys(this.graphs).forEach(key => {
-        let index = this.graphs[key].zIndex;
-        maxZ = Math.max(index, maxZ);
-      });
-      return maxZ;
+    onUpdateGraphPad: function(graphs,connections,generatorSetting){
+      this.generate(graphs, connections, generatorSetting);
     },
-    onNodeClick : function (graphId,nodeType,nodeIndex) {
-      if(this.selectedNode == null){
-        this.selectedNode = {
-          graphId : graphId,
-          nodeType : nodeType,
-          nodeIndex : nodeIndex
-        };
-      }else{
-
-        this.logString += "Connect Node\n"
-        this.logString += this.selectedNode.graphId + "\n" + this.selectedNode.nodeType + "\n" + this.selectedNode.nodeIndex + "\n";
-        this.logString += graphId + "\n" + nodeType + "\n" + nodeIndex + "\n";
-
-        if((nodeType === 0 && this.selectedNode.nodeType === 1)
-            || (nodeType === 1 && this.selectedNode.nodeType === 0)){
-          this.logString +="Process\n";
-          this.connections.push([
-            this.selectedNode.graphId,
-            this.selectedNode.nodeType,
-            this.selectedNode.nodeIndex,
-            graphId,
-            nodeType,
-            nodeIndex
-          ]);
-        }
-        else if((nodeType === 2 && this.selectedNode.nodeType === 3)
-        || (nodeType === 3 && this.selectedNode.nodeType === 2)){
-          this.logString +="Item\n";
-          this.connections.push([
-            this.selectedNode.graphId,
-            this.selectedNode.nodeType,
-            this.selectedNode.nodeIndex,
-            graphId,
-            nodeType,
-            nodeIndex
-          ]);
-        }else{
-          this.logString +="TypeError\n";
-        }
-
-        this.selectedNode = null;
-        this.generate();
+    onAddGraph: function(type,definition){
+      if(this.jsMode){
+        this.$refs.jsPad.addGraph(type,definition);
+      }else {
+        this.$refs.htmlPad.addGraph(type,definition);
       }
     },
-    onAddGraph : function (type,definition){
-      let pad = this.$refs.graphpad;
-      let id = generateUuid();
-
-      this.$set(this.graphs, id,  {
-        type:type,
-        definition:definition,
-        setting:{
-          x:-pad.offsetLeft + window.innerWidth/3,
-          y:-pad.offsetTop + window.innerHeight/3,
-          zIndex:this.getMaxZIndex() + 1
-        }
-      });
+    regenerate: function(){
+      //JavaScriptを再生成
+      this.generate(this.$refs.jsPad.graphs,this.$refs.jsPad.connections,this.javascriptSetting);
+      //HTMLを再生成
+      this.generate(this.$refs.htmlPad.graphs,this.$refs.htmlPad.connections,this.htmlSetting);
     },
-    generate: async function (){
+    generate: async function (graphs,connections,generatorSetting) {
 
       let startGraphId = "";
 
@@ -139,42 +98,69 @@ export default {
       };
 
       //グラフを読み込む
-      for(let id in this.graphs){
-        let graphType = this.graphs[id].type;
+      for(let id in graphs){
+        let graphType = graphs[id].type;
 
         topology.Graphs[id] = {
           Type : graphType,
           Args : {}
         }
 
-        for(let key in this.graphs[id].definition.Args){
-          topology.Graphs[id].Args[key] = this.graphs[id].setting[key];
+        for(let i in graphs[id].definition.Args){
+          let key = graphs[id].definition.Args[i];
+          let value = graphs[id].setting[key];
+          topology.Graphs[id].Args[key] = value.toString();
         }
 
         if(graphType === "OnClicked"){
           startGraphId = id;
         }
+
+        if(graphType === "body"){
+          startGraphId = id;
+        }
       }
 
       //接続設定を読み込む
-      for(let id in this.connections){
-        let conn = this.connections[id];
-        topology.Connections.push(conn[0] + ":" + conn[1] + ":" + conn[2] + "," + conn[3] + ":" + conn[4] + ":" + conn[5]);
+      for(let id in connections){
+        let conn = connections[id];
+        let from = conn.from;
+        let to = conn.to;
+        topology.Connections.push(
+            from.graphId + ":" + from.nodeType + ":" + from.nodeIndex + ","
+            + to.graphId + ":" + to.nodeType + ":" + to.nodeIndex);
       }
 
       //生成する
-      let topologyString = encodeURI(JSON.stringify(topology));
-      let settingString = encodeURI(JSON.stringify(this.javascriptSetting));
+      let uri = 'http://192.168.1.24:80/';
 
-      let uri = 'http://localhost:80/?t=' + topologyString + "&g=" + settingString + "&s=" + startGraphId;
-      console.log(uri);
+      const postObj = {
+        GraphTopologySetting: topology,
+        GeneratorSetting: generatorSetting,
+        StartGraphId: startGraphId
+      };
 
-      let response = await fetch(uri);
+      const method = "POST";
+      const body = JSON.stringify(postObj);
+      const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': 'POST, GET'
+      };
+
+      let response = await fetch(uri,{method, headers, body});
       let result = await response.text();
 
-      console.log(result);
-
-      this.jsString = result;
+      if(generatorSetting === this.javascriptSetting){
+        this.jsString = result;
+      }else {
+        this.htmlString = result;
+      }
+      this.resultString = `<html><body>${this.htmlString}<script>`;
+      this.resultString += this.jsString;
+      this.resultString += "<" + "/script></body></html>";
     }
   }
 }
@@ -187,6 +173,28 @@ body{
   padding: 0;
   overflow: hidden;
 }
+
+.flex-column{
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-row{
+  display: flex;
+  flex-direction: row;
+}
+
+.gap-8{
+  gap: 8px;
+}
+
+.no-select{
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
 </style>
 
 <style scoped>
@@ -203,13 +211,51 @@ body{
   height: 100vh;
 }
 
+.fixed-bottom-left{
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+}
+
+.mybutton{
+  height: 40px;
+  padding:5px;
+  width: 190px;
+}
+
+.background-transparent{
+  background-color: transparent;
+  transition: all 0.5s;
+}
+
+.hover-white:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transition: all 0.3s;
+}
+
+.click-black:active {
+  background: rgba(0, 0, 0, 0.56);
+  transition: all 0.3s;
+}
+
+.button-img{
+  width: 40px;
+  height: 40px;
+  z-index: 1000000;
+}
+
+.button-text{
+  font-size: 30px ;
+  color: white;
+  text-align: center;
+}
+
 #tool-pad{
-  width: 200px;
-  height: 100%;
+  position: relative;
   z-index: 10000;
 }
 
-#graph-pad{
+.graph-pad{
   flex-grow: 1;
   height: 100%;
 }
@@ -217,6 +263,10 @@ body{
 #result-pad{
   width: 600px;
   height: 100%;
+  z-index: 10000;
+}
+
+#result-viewer{
   z-index: 10000;
 }
 
