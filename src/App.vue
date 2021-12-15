@@ -132,7 +132,7 @@ export default {
       }
 
       //生成する
-      let uri = 'http://192.168.1.24:80/';
+      let uri = 'http://localhost:80/';
 
       const postObj = {
         GraphTopologySetting: topology,
