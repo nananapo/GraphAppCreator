@@ -223,7 +223,8 @@ export default {
       this.clickX = args.x;
       this.clickY = args.y;
 
-      this.$emit("toFront")
+      this.$emit("toFront");
+      this.$emit("onSelected");
     },
     onMouseUp : function () {
       this.dragMode = false;

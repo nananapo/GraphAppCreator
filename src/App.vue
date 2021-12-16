@@ -7,18 +7,27 @@
               v-show="jsMode"
               :generator-setting="javascriptSetting"
               :logo-src="require('@/assets/javascript_logo.jpeg')"
-              v-on:onUpdate="onUpdateGraphPad"/>
+              v-on:onUpdate="onUpdateGraphPad"
+              v-on:onGraphSelected="onGraphSelected"/>
 
     <GraphPad class="graph-pad"
               ref="htmlPad"
               v-show="!jsMode"
               :generator-setting="htmlSetting"
               :logo-src="require('@/assets/html_logo.png')"
-              v-on:onUpdate="onUpdateGraphPad"/>
+              v-on:onUpdate="onUpdateGraphPad"
+              v-on:onGraphSelected="onGraphSelected"/>
 
-    <ResultViewer id="result-viewer" :result-html="resultString"/>
+    <ResultViewer id="result-viewer"
+                  :result-html="resultString"/>
 
-    <ResultPad v-show="showResultPad" id="result-pad" :log="logString" :html="htmlString" :js="jsString"/>
+    <ResultPad id="result-pad"
+               v-show="showResultPad"
+               :html="htmlString"
+               :js="jsString"
+               :html-syntax-string="htmlSyntaxString"
+               :js-syntax-string="jsSyntaxString"
+               :highlight-graph-id="selectedGraphId"/>
 
     <div class="flex-column fixed-bottom-left no-select">
       <div class="flex-row gap-8 mybutton background-transparent hover-white click-black" v-on:click="regenerate">
@@ -57,10 +66,15 @@ export default {
       jsMode:true,
       showResultPad:false,
 
-      logString : "",
       resultString : "",
+
       htmlString : "HTML",
       jsString : "JS",
+
+      htmlSyntaxString : "",
+      jsSyntaxString : "",
+
+      selectedGraphId:""
     }
   },
   async mounted() {
@@ -80,6 +94,9 @@ export default {
       }else {
         this.$refs.htmlPad.addGraph(type,definition);
       }
+    },
+    onGraphSelected: function(graphId){
+      this.selectedGraphId = graphId;
     },
     regenerate: function(){
       //JavaScriptを再生成
@@ -151,16 +168,36 @@ export default {
       };
 
       let response = await fetch(uri,{method, headers, body});
-      let result = await response.text();
 
-      if(generatorSetting === this.javascriptSetting){
-        this.jsString = result;
-      }else {
-        this.htmlString = result;
+      //エラー
+      if(response.status !== 200){
+        let result = await response.text();
+        if(generatorSetting === this.javascriptSetting){
+          this.jsString = result;
+        }else {
+          this.htmlString = result;
+        }
       }
-      this.resultString = `<html><body>${this.htmlString}<script>`;
-      this.resultString += this.jsString;
-      this.resultString += "<" + "/script></body></html>";
+
+      if(response.status === 200){
+        let result = await response.json();
+
+        if(generatorSetting === this.javascriptSetting){
+          this.jsString = result.GeneratedCode;
+          this.jsSyntaxString = result.SyntaxHighlight;
+        }else {
+          this.htmlString = result.GeneratedCode;
+          this.htmlSyntaxString = result.SyntaxHighlight;
+        }
+
+        this.resultString = `<html><body>${this.htmlString}<script>`;
+        this.resultString += this.jsString;
+        this.resultString += "<" + "/script></body></html>";
+      }
+
+      if(startGraphId !== ""){
+        this.selectedGraphId = startGraphId;
+      }
     }
   }
 }
@@ -182,6 +219,10 @@ body{
 .flex-row{
   display: flex;
   flex-direction: row;
+}
+
+.flex-1{
+  flex: 1;
 }
 
 .gap-8{

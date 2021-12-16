@@ -18,6 +18,7 @@
            :offset-top="offsetTop"
            :offset-left="offsetLeft"
            :logo-src="logoSrc"
+           v-on:onSelected="onSelectGraph(id)"
            v-on:toFront="toFront(id)"
            v-on:onNodeClick="onNodeClick"
            v-on:onMove="onMoveGraph(id)"
@@ -98,20 +99,6 @@ export default {
 
       }
     },
-    removeGraph(id){
-      //グラフを削除
-      this.$delete(this.graphs,id);
-
-      //接続点を削除
-      for(let connId in this.connections){
-        if(this.connections[connId].from.graphId === id || this.connections[connId].to.graphId === id){
-          this.$delete(this.connections,connId);
-          this.$delete(this.connectionPoints,connId);
-        }
-      }
-
-      this.$emit('onUpdate',this.graphs,this.connections,this.generatorSetting);
-    },
     toFront(id) {
       let myZ = this.graphs[id].setting.zIndex;
       let maxZ = myZ - 1;
@@ -126,6 +113,23 @@ export default {
       });
 
       this.graphs[id].setting.zIndex = maxZ + 1;
+    },
+    onSelectGraph(id){
+      this.$emit("onGraphSelected",id);
+    },
+    removeGraph(id){
+      //グラフを削除
+      this.$delete(this.graphs,id);
+
+      //接続点を削除
+      for(let connId in this.connections){
+        if(this.connections[connId].from.graphId === id || this.connections[connId].to.graphId === id){
+          this.$delete(this.connections,connId);
+          this.$delete(this.connectionPoints,connId);
+        }
+      }
+
+      this.$emit('onUpdate',this.graphs,this.connections,this.generatorSetting);
     },
     getMaxZIndex : function () {
       let maxZ = -1;
