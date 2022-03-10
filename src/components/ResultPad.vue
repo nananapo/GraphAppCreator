@@ -36,10 +36,6 @@ export default {
     refreshJavascript(){
       this.highlightedJs = highlight(this.jsSyntaxString,this.highlightGraphId,this.spanStart,this.spanEnd)
           .replace(/\n/g,"<br/>");
-
-      console.log(this.highlightGraphId);
-      console.log(this.jsSyntaxString);
-      console.log(this.highlightedJs);
     },
     refreshHtml(){
       let myspan = this.my_escape(this.spanStart);

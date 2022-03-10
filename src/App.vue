@@ -193,6 +193,12 @@ export default {
         this.resultString = `<html><body>${this.htmlString}<script>`;
         this.resultString += this.jsString;
         this.resultString += "<" + "/script></body></html>";
+
+        console.log("Result:");
+        console.log(result.GeneratedCode);
+
+        console.log("Highlight:");
+        console.log(result.SyntaxHighlight);
       }
 
       if(startGraphId !== ""){
