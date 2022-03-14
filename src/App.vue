@@ -149,7 +149,7 @@ export default {
       }
 
       //生成する
-      let uri = 'http://localhost:80/';
+      let uri = 'https://oekaki.chat:19136/';
 
       const postObj = {
         GraphTopologySetting: topology,
